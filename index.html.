@@ -118,10 +118,13 @@
   <script>
     // Simple NZ map with a few key towers
     const map = L.map('map', { zoomControl: true }).setView([-41.2, 173.0], 5.3);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+  {
+    attribution: 'Tiles © Esri & contributors',
+    maxZoom: 18
+  }
+).addTo(map);
     const towers = [
       { name: 'Christchurch Tower', coords: [-43.489, 172.539], note: 'CTR, parallel seal and grass operations published as applicable.' },
       { name: 'Auckland Tower', coords: [-37.008, 174.791], note: 'Complex surface movement area.' },
