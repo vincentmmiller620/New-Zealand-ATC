@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>New Zealand ATC</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Tailwind CSS for styling -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- MapLibre -->
   <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
@@ -28,7 +28,7 @@
   <!-- Main Content -->
   <main id="main" class="px-8 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-950">
 
-    <!-- Controls panel -->
+    <!-- Controls -->
     <div class="space-y-6 md:col-span-1">
       <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
         <h2 class="text-gray-300 font-semibold mb-4">Setup</h2>
@@ -40,57 +40,19 @@
         </select>
         <label class="block text-sm text-gray-400 mb-2">Callsign</label>
         <input id="callsign" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white mb-4" placeholder="e.g. ZK-FTD" />
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-2">QNH</label>
-            <input id="qnh" value="1013" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white" />
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-2">Runway</label>
-            <input id="runway" value="02" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white" />
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
-        <h2 class="text-gray-300 font-semibold mb-4">Scenario</h2>
-        <select id="scenario" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white mb-4">
-          <option value="initial">Initial contact</option>
-          <option value="taxi">Taxi clearance</option>
-          <option value="enter">Zone entry</option>
-          <option value="takeoff">Takeoff clearance</option>
-          <option value="circuit">Touch and go circuit</option>
-        </select>
-        <button id="btnStart" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg p-3 font-semibold">Play Tower</button>
-      </div>
-
-      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
-        <h2 class="text-gray-300 font-semibold mb-4">Your Readback</h2>
-        <textarea id="pilot" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white h-28 mb-3"></textarea>
-        <div class="grid grid-cols-2 gap-3">
-          <button id="btnCheck" class="bg-green-600 hover:bg-green-500 text-white rounded-lg p-3 font-semibold">Check</button>
-          <button id="btnExample" class="bg-gray-700 hover:bg-gray-600 text-white rounded-lg p-3 font-semibold">Model</button>
-        </div>
-        <div id="feedback" class="text-sm text-gray-300 mt-4 whitespace-pre-line"></div>
       </div>
     </div>
 
-    <!-- Map and Transcript -->
+    <!-- Map -->
     <div class="space-y-6 md:col-span-2">
       <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
         <h2 class="text-gray-300 font-semibold mb-4">NZ Controlled Airspace</h2>
         <div id="map"></div>
       </div>
-
-      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
-        <h2 class="text-gray-300 font-semibold mb-4">Transcript</h2>
-        <div id="transcript" class="p-3 bg-gray-800 rounded-lg border border-gray-700 text-gray-200 text-sm h-40 overflow-y-auto"></div>
-      </div>
     </div>
   </main>
 
   <script>
-    // MapLibre map
     const map = new maplibregl.Map({
       container: 'map',
       style: 'https://demotiles.maplibre.org/style.json',
@@ -122,3 +84,4 @@
   </script>
 </body>
 </html>
+
