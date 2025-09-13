@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New Zealand ATC Practice</title>
+  <!-- Leaflet for the NZ map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <style>
+    :root { --bg:#0b0c10; --fg:#f8fafc; --muted:#a3a3a3; --accent:#22c55e; --bad:#ef4444; --ok:#3b82f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--fg); }
+    header { padding: 16px 20px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; gap: 12px; }
+    h1 { margin: 0; font-size: 22px; }
+    main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; min-height: calc(100vh - 66px); }
+    #left { display: grid; gap: 12px; align-content: start; }
+    section.card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 14px; }
+    section.card h2 { margin: 0 0 8px; font-size: 16px; color: var(--muted); font-weight: 600; }
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    input, select, button, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #374151; background: #0b1220; color: var(--fg); }
+    textarea { resize: vertical; min-height: 76px; }
+    button { cursor: pointer; font-weight: 600; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #map { height: 420px; border-radius: 16px; overflow: hidden; }
+    .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #374151; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; background:#0a0f1a; border-radius: 12px; padding: 10px; border:1px solid #1f2937; min-height: 100px; }
+    .good { color: var(--accent); }
+    .bad { color: var(--bad); }
+    .note { color: var(--muted); font-size: 12px; }
+    .tiny { font-size: 11px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>New Zealand ATC Practice</h1>
+    <span class="pill">Static site — works on GitHub Pages</span>
+  </header>
+  <main>
+    <div id="left">
+      <section class="card" id="site">
+        <h2>Aerodrome and callsign</h2>
+        <div class="row">
+          <div>
+            <label for="unit">Tower</label>
+            <select id="unit">
+              <option value="Christchurch Tower">Christchurch Tower</option>
+              <option value="Auckland Tower">Auckland Tower</option>
+              <option value="Wellington Tower">Wellington Tower</option>
+            </select>
+          </div>
+          <div>
+            <label for="callsign">Your callsign</label>
+            <input id="callsign" placeholder="e.g. Cessna ZK-FTD" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label for="qnh">QNH</label>
+            <input id="qnh" placeholder="e.g. 1013" value="1013" />
+          </div>
+          <div>
+            <label for="runway">Runway</label>
+            <input id="runway" placeholder="e.g. 02" value="02" />
+          </div>
+        </div>
+        <p class="note">Use New Zealand radiotelephony phraseology. Do not use “go ahead”. Speak numbers as per ICAO guidance.</p>
+      </section>
+
+      <section class="card">
+        <h2>Scenario</h2>
+        <select id="scenario">
+          <option value="initial">Initial contact and request taxi</option>
+          <option value="taxi">Taxi clearance to holding point</option>
+          <option value="enter">VFR request to enter control zone</option>
+          <option value="takeoff">Line up and takeoff clearance</option>
+          <option value="circuit">Touch and go circuit</option>
+        </select>
+        <button id="btnStart" style="margin-top:8px">Play tower transmission</button>
+        <p class="tiny">Tip: enable device audio. The browser voice will read the tower line. If speech fails, the text still appears below.</p>
+      </section>
+
+      <section class="card">
+        <h2>Your readback</h2>
+        <textarea id="pilot"></textarea>
+        <div class="row" style="margin-top:8px; align-items:center;">
+          <button id="btnCheck">Check readback</button>
+          <button id="btnExample">Show model readback</button>
+        </div>
+        <div id="feedback" class="log" style="margin-top:8px"></div>
+      </section>
+
+      <section class="card">
+        <h2>Pronunciation helper</h2>
+        <input id="sayText" placeholder="Type numbers or a short line to hear pronunciation" />
+        <div class="row" style="margin-top:8px">
+          <button id="btnSay">Speak</button>
+          <button id="btnStop">Stop</button>
+        </div>
+        <p class="tiny">Numbers use WUN, TOO, TREE, FOW er, FIFE, SIX, SEV en, AIT, NIN er, ZE RO. QNH is spoken as individual digits.</p>
+      </section>
+    </div>
+
+    <div id="right">
+      <section class="card">
+        <h2>Map of New Zealand control zones</h2>
+        <div id="map"></div>
+        <p class="tiny">Click markers for a short note. This app is client side only.</p>
+      </section>
+
+      <section class="card">
+        <h2>Transcript</h2>
+        <div id="transcript" class="log"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // Simple NZ map with a few key towers
+    const map = L.map('map', { zoomControl: true }).setView([-41.2, 173.0], 5.3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    const towers = [
+      { name: 'Christchurch Tower', coords: [-43.489, 172.539], note: 'CTR, parallel seal and grass operations published as applicable.' },
+      { name: 'Auckland Tower', coords: [-37.008, 174.791], note: 'Complex surface movement area.' },
+      { name: 'Wellington Tower', coords: [-41.327, 174.807], note: 'Runway in a bay, frequent wind shear.' }
+    ];
+    towers.forEach(t => L.marker(t.coords).addTo(map).bindPopup(`<b>${t.name}</b><br>${t.note}`));
+
+    const $ = sel => document.querySelector(sel);
+    const unitEl = $('#unit');
+    const csEl = $('#callsign');
+    const qnhEl = $('#qnh');
+    const rwEl = $('#runway');
+    const scEl = $('#scenario');
+    const txEl = $('#transcript');
+    const fbEl = $('#feedback');
+    const pilotEl = $('#pilot');
+
+    function say(text) {
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-NZ';
+        u.rate = 0.95;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+      } catch(e) { /* silently ignore */ }
+    }
+
+    function phoneticNumber(n) {
+      const map = { '0':'ZE-RO','1':'WUN','2':'TOO','3':'TREE','4':'FOW-er','5':'FIFE','6':'SIX','7':'SEV-en','8':'AIT','9':'NIN-er' };
+      return String(n).split('').map(d=>map[d]||d).join(' ');
+    }
+
+    function spokenQNH(q) {
+      return `Q N H ${String(q).split('').join(' ')}`;
+    }
+
+    function formatTower(line) {
+      // Show and speak
+      txEl.textContent += `\n${line}`;
+      say(line);
+    }
+
+    function modelReadback(kind, unit, cs, qnh, rw) {
+      const rwyWords = `runway ${rw.replace(/^(\d{2})$/, '$1')}`;
+      const rwySpeak = `Runway ${phoneticNumber(rw)}`;
+      const qnhSpeak = `Q N H ${String(qnh).split('').join(' ')}`;
+      switch(kind){
+        case 'initial':
+          return `${cs} at the aero club, request taxi, circuits, information Bravo, ${qnhSpeak}.`;
+        case 'taxi':
+          return `${cs} taxi to holding point ${rwyWords}.`;
+        case 'enter':
+          return `${cs} request clearance to enter control zone at one thousand five hundred feet for touch and go, ${qnhSpeak}.`;
+        case 'takeoff':
+          return `${cs} lined up ${rwyWords}.`;
+        case 'circuit':
+          return `${cs} on final ${rwyWords} touch and go.`;
+        default: return `${cs}.`;
+      }
+    }
+
+    function towerLine(kind, unit, cs, qnh, rw) {
+      // Per AC 4.7.1 do not say "go ahead". Use the two call signs and then transmit.
+      const rwySpeak = `Runway ${phoneticNumber(rw)}`;
+      const qnhSpeak = `Q N H ${String(qnh).split('').join(' ')}`;
+      if(kind==='initial') return `${unit} ${cs}. Runway ${rw}. Wind variable. ${qnhSpeak}. Say intentions.`;
+      if(kind==='taxi') return `${cs}. Taxi to holding point ${rw}. Hold short. ${qnhSpeak}.`;
+      if(kind==='enter') return `${cs}. Enter control zone at one thousand five hundred feet. Track to harbour entrance. Report harbour entrance. ${qnhSpeak}.`;
+      if(kind==='takeoff') return `${cs}. Line up ${rw}.`;
+      if(kind==='circuit') return `${cs}. Cleared touch and go ${rw}.`;
+      return `${cs}.`;
+    }
+
+    function checkReadback(kind, text, unit, cs, qnh, rw) {
+      const req = [];
+      // AC 4.12 readback requirements
+      if(['taxi','takeoff','enter','circuit'].includes(kind)) req.push(/\b(runway|holding point|line up|enter control zone|touch and go)\b/i);
+      req.push(new RegExp(cs.replace(/[-.*+?^${}()|[\]\\]/g,'\\$&'), 'i'));
+      if(['taxi','enter'].includes(kind)) req.push(/(hold short|report)/i);
+      if(['taxi','enter','initial'].includes(kind)) req.push(/\bQ\s?N\s?H\b|\bqnh\b/i);
+
+      const misses = req.filter(r => !r.test(text));
+      const feedback = [];
+      if(/\bgo ahead\b/i.test(text)) feedback.push('Avoid “go ahead” — not used in VHF per AC 4.7.1.');
+      if(!/\b(runway\s*\d{2})\b/i.test(text) && ['taxi','takeoff','circuit'].includes(kind)) feedback.push('Include runway designator.');
+      if(!/\b(enter control zone|control zone)\b/i.test(text) && kind==='enter') feedback.push('Acknowledge clearance to enter the control zone.');
+      if(!/\b(line\s*up)\b/i.test(text) && kind==='takeoff') feedback.push('State lined up when acknowledging line up clearance.');
+      if(!/\b(touch\s*and\s*go)\b/i.test(text) && kind==='circuit') feedback.push('Include touch and go in readback.');
+
+      const ok = misses.length===0 && feedback.length===0;
+      return { ok, details: ok ? ['Readback meets key requirements.'] : misses.map(()=> 'Ensure full readback per AC 4.12.') .concat(feedback)};
+    }
+
+    $('#btnStart').addEventListener('click', () => {
+      const unit = unitEl.value.trim() || 'Christchurch Tower';
+      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
+      const qnh = qnhEl.value.trim() || '1013';
+      const rw = rwEl.value.trim() || '02';
+      const kind = scEl.value;
+      const line = towerLine(kind, unit, cs, qnh, rw);
+      formatTower(`${unit}: ${line}`);
+      pilotEl.value = '';
+      fbEl.textContent = '';
+    });
+
+    $('#btnExample').addEventListener('click', () => {
+      const unit = unitEl.value.trim();
+      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
+      const qnh = qnhEl.value.trim() || '1013';
+      const rw = rwEl.value.trim() || '02';
+      const kind = scEl.value;
+      const model = modelReadback(kind, unit, cs, qnh, rw);
+      fbEl.innerHTML = `<span class="good">Model:</span> ${model}`;
+    });
+
+    $('#btnCheck').addEventListener('click', () => {
+      const unit = unitEl.value.trim();
+      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
+      const qnh = qnhEl.value.trim() || '1013';
+      const rw = rwEl.value.trim() || '02';
+      const kind = scEl.value;
+      const text = pilotEl.value.trim();
+      const { ok, details } = checkReadback(kind, text, unit, cs, qnh, rw);
+      const badge = ok ? '<span class="good">OK</span>' : '<span class="bad">Needs work</span>';
+      fbEl.innerHTML = `${badge}\n- ${details.join('\n- ')}`;
+      if(ok) txEl.textContent += `\nPilot: ${text}`;
+    });
+
+    // Pronunciation helper
+    $('#btnSay').addEventListener('click', () => {
+      const t = $('#sayText').value.trim();
+      if(!t) return;
+      say(t.replace(/QNH\s*(\d+)/ig, (_,d) => `Q N H ${String(d).split('').join(' ')}`)
+            .replace(/\b(\d{2,4})\b/g, (_,n) => phoneticNumber(n)));
+    });
+    $('#btnStop').addEventListener('click', () => speechSynthesis.cancel());
+
+    // Seed transcript with a hint
+    txEl.textContent = 'This trainer follows NZ radiotelephony guidance. The tower will not say “go ahead”. Ensure full readback of clearances including runway, QNH, hold short, and reporting points as applicable.';
+  </script>
+</body>
+</html>
+
