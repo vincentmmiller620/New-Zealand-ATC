@@ -30,7 +30,9 @@
     .note { color: var(--muted); font-size: 12px; }
     .tiny { font-size: 11px; color: var(--muted); }
   </style>
-</head>
+</head><link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
 <body>
   <header>
     <h1>New Zealand ATC Practice</h1>
@@ -264,7 +266,38 @@
 
     // Seed transcript with a hint
     txEl.textContent = 'This trainer follows NZ radiotelephony guidance. The tower will not say “go ahead”. Ensure full readback of clearances including runway, QNH, hold short, and reporting points as applicable.';
-  </script>
+  </script>const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://demotiles.maplibre.org/style.json', // free MapLibre style
+  center: [174.8, -41.2], // Centre on New Zealand
+  zoom: 4.5,
+  pitch: 60,
+  bearing: -20
+});
+
+// Major controlled zones in New Zealand
+const zones = [
+  { name: 'Auckland CTR', coords: [174.791, -37.008] },
+  { name: 'Wellington CTR', coords: [174.807, -41.327] },
+  { name: 'Christchurch CTR', coords: [172.539, -43.489] },
+  { name: 'Queenstown CTR', coords: [168.739, -45.021] },
+  { name: 'Dunedin CTR', coords: [170.201, -45.928] },
+  { name: 'Hamilton CTR', coords: [175.332, -37.866] },
+  { name: 'Tauranga CTR', coords: [176.195, -37.673] }
+];
+
+zones.forEach(z => {
+  new maplibregl.Marker({ color: 'red' })
+    .setLngLat(z.coords)
+    .setPopup(
+      new maplibregl.Popup().setHTML(
+        `<h2 class='font-bold text-lg mb-1'>${z.name}</h2>
+         <p class='text-sm'>Click to practise ATC calls for this zone.</p>`
+      )
+    )
+    .addTo(map);
+});
+
 </body>
 </html>
 
