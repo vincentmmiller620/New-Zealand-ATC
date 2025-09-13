@@ -1,303 +1,124 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>New Zealand ATC Practice</title>
-  <!-- Leaflet for the NZ map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <meta charset="utf-8">
+  <title>New Zealand ATC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind CSS for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- MapLibre -->
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
   <style>
-    :root { --bg:#0b0c10; --fg:#f8fafc; --muted:#a3a3a3; --accent:#22c55e; --bad:#ef4444; --ok:#3b82f6; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--fg); }
-    header { padding: 16px 20px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; gap: 12px; }
-    h1 { margin: 0; font-size: 22px; }
-    main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; min-height: calc(100vh - 66px); }
-    #left { display: grid; gap: 12px; align-content: start; }
-    section.card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 14px; }
-    section.card h2 { margin: 0 0 8px; font-size: 16px; color: var(--muted); font-weight: 600; }
-    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
-    input, select, button, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #374151; background: #0b1220; color: var(--fg); }
-    textarea { resize: vertical; min-height: 76px; }
-    button { cursor: pointer; font-weight: 600; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    #map { height: 420px; border-radius: 16px; overflow: hidden; }
-    .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #374151; }
-    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; background:#0a0f1a; border-radius: 12px; padding: 10px; border:1px solid #1f2937; min-height: 100px; }
-    .good { color: var(--accent); }
-    .bad { color: var(--bad); }
-    .note { color: var(--muted); font-size: 12px; }
-    .tiny { font-size: 11px; color: var(--muted); }
+    html, body { margin: 0; height: 100%; scroll-behavior: smooth; background: #0b0c10; color: #f8fafc; }
+    #map { height: 600px; border-radius: 1rem; overflow: hidden; }
+    .scroll-down { position: absolute; bottom: 40px; font-size: 2rem; animation: bounce 1.5s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);} }
   </style>
-</head><link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+</head>
+<body class="font-sans">
 
-<body>
-  <header>
-    <h1>New Zealand ATC Practice</h1>
-    <span class="pill">Static site — works on GitHub Pages</span>
-  </header>
-  <main>
-    <div id="left">
-      <section class="card" id="site">
-        <h2>Aerodrome and callsign</h2>
-        <div class="row">
+  <!-- Hero Section -->
+  <section class="h-screen flex flex-col items-center justify-center text-center bg-gradient-to-b from-black to-gray-900 relative">
+    <h1 class="text-6xl font-bold mb-4">New Zealand ATC</h1>
+    <p class="text-xl opacity-80">Master radiotelephony in controlled NZ airspace</p>
+    <a href="#main" class="scroll-down text-white">⬇</a>
+  </section>
+
+  <!-- Main Content -->
+  <main id="main" class="px-8 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-950">
+
+    <!-- Controls panel -->
+    <div class="space-y-6 md:col-span-1">
+      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
+        <h2 class="text-gray-300 font-semibold mb-4">Setup</h2>
+        <label class="block text-sm text-gray-400 mb-2">Tower</label>
+        <select id="unit" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white mb-4">
+          <option value="Christchurch Tower">Christchurch Tower</option>
+          <option value="Auckland Tower">Auckland Tower</option>
+          <option value="Wellington Tower">Wellington Tower</option>
+        </select>
+        <label class="block text-sm text-gray-400 mb-2">Callsign</label>
+        <input id="callsign" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white mb-4" placeholder="e.g. ZK-FTD" />
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label for="unit">Tower</label>
-            <select id="unit">
-              <option value="Christchurch Tower">Christchurch Tower</option>
-              <option value="Auckland Tower">Auckland Tower</option>
-              <option value="Wellington Tower">Wellington Tower</option>
-            </select>
+            <label class="block text-sm text-gray-400 mb-2">QNH</label>
+            <input id="qnh" value="1013" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white" />
           </div>
           <div>
-            <label for="callsign">Your callsign</label>
-            <input id="callsign" placeholder="e.g. Cessna ZK-FTD" />
+            <label class="block text-sm text-gray-400 mb-2">Runway</label>
+            <input id="runway" value="02" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white" />
           </div>
         </div>
-        <div class="row" style="margin-top:8px">
-          <div>
-            <label for="qnh">QNH</label>
-            <input id="qnh" placeholder="e.g. 1013" value="1013" />
-          </div>
-          <div>
-            <label for="runway">Runway</label>
-            <input id="runway" placeholder="e.g. 02" value="02" />
-          </div>
-        </div>
-        <p class="note">Use New Zealand radiotelephony phraseology. Do not use “go ahead”. Speak numbers as per ICAO guidance.</p>
-      </section>
+      </div>
 
-      <section class="card">
-        <h2>Scenario</h2>
-        <select id="scenario">
-          <option value="initial">Initial contact and request taxi</option>
-          <option value="taxi">Taxi clearance to holding point</option>
-          <option value="enter">VFR request to enter control zone</option>
-          <option value="takeoff">Line up and takeoff clearance</option>
+      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
+        <h2 class="text-gray-300 font-semibold mb-4">Scenario</h2>
+        <select id="scenario" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white mb-4">
+          <option value="initial">Initial contact</option>
+          <option value="taxi">Taxi clearance</option>
+          <option value="enter">Zone entry</option>
+          <option value="takeoff">Takeoff clearance</option>
           <option value="circuit">Touch and go circuit</option>
         </select>
-        <button id="btnStart" style="margin-top:8px">Play tower transmission</button>
-        <p class="tiny">Tip: enable device audio. The browser voice will read the tower line. If speech fails, the text still appears below.</p>
-      </section>
+        <button id="btnStart" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg p-3 font-semibold">Play Tower</button>
+      </div>
 
-      <section class="card">
-        <h2>Your readback</h2>
-        <textarea id="pilot"></textarea>
-        <div class="row" style="margin-top:8px; align-items:center;">
-          <button id="btnCheck">Check readback</button>
-          <button id="btnExample">Show model readback</button>
+      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
+        <h2 class="text-gray-300 font-semibold mb-4">Your Readback</h2>
+        <textarea id="pilot" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white h-28 mb-3"></textarea>
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btnCheck" class="bg-green-600 hover:bg-green-500 text-white rounded-lg p-3 font-semibold">Check</button>
+          <button id="btnExample" class="bg-gray-700 hover:bg-gray-600 text-white rounded-lg p-3 font-semibold">Model</button>
         </div>
-        <div id="feedback" class="log" style="margin-top:8px"></div>
-      </section>
-
-      <section class="card">
-        <h2>Pronunciation helper</h2>
-        <input id="sayText" placeholder="Type numbers or a short line to hear pronunciation" />
-        <div class="row" style="margin-top:8px">
-          <button id="btnSay">Speak</button>
-          <button id="btnStop">Stop</button>
-        </div>
-        <p class="tiny">Numbers use WUN, TOO, TREE, FOW er, FIFE, SIX, SEV en, AIT, NIN er, ZE RO. QNH is spoken as individual digits.</p>
-      </section>
+        <div id="feedback" class="text-sm text-gray-300 mt-4 whitespace-pre-line"></div>
+      </div>
     </div>
 
-    <div id="right">
-      <section class="card">
-        <h2>Map of New Zealand control zones</h2>
+    <!-- Map and Transcript -->
+    <div class="space-y-6 md:col-span-2">
+      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
+        <h2 class="text-gray-300 font-semibold mb-4">NZ Controlled Airspace</h2>
         <div id="map"></div>
-        <p class="tiny">Click markers for a short note. This app is client side only.</p>
-      </section>
+      </div>
 
-      <section class="card">
-        <h2>Transcript</h2>
-        <div id="transcript" class="log"></div>
-      </section>
+      <div class="bg-gray-900 rounded-2xl p-6 shadow-lg border border-gray-800">
+        <h2 class="text-gray-300 font-semibold mb-4">Transcript</h2>
+        <div id="transcript" class="p-3 bg-gray-800 rounded-lg border border-gray-700 text-gray-200 text-sm h-40 overflow-y-auto"></div>
+      </div>
     </div>
   </main>
 
   <script>
-    // Simple NZ map with a few key towers
-    const map = L.map('map', { zoomControl: true }).setView([-41.2, 173.0], 5.3);
-    L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
-  {
-    attribution: 'Tiles © Esri & contributors',
-    maxZoom: 18
-  }
-).addTo(map);
-    const towers = [
-      { name: 'Christchurch Tower', coords: [-43.489, 172.539], note: 'CTR, parallel seal and grass operations published as applicable.' },
-      { name: 'Auckland Tower', coords: [-37.008, 174.791], note: 'Complex surface movement area.' },
-      { name: 'Wellington Tower', coords: [-41.327, 174.807], note: 'Runway in a bay, frequent wind shear.' }
+    // MapLibre map
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://demotiles.maplibre.org/style.json',
+      center: [174.8, -41.2],
+      zoom: 4.5,
+      pitch: 60,
+      bearing: -20
+    });
+
+    const zones = [
+      { name: 'Auckland CTR', coords: [174.791, -37.008] },
+      { name: 'Wellington CTR', coords: [174.807, -41.327] },
+      { name: 'Christchurch CTR', coords: [172.539, -43.489] },
+      { name: 'Queenstown CTR', coords: [168.739, -45.021] },
+      { name: 'Dunedin CTR', coords: [170.201, -45.928] },
+      { name: 'Hamilton CTR', coords: [175.332, -37.866] },
+      { name: 'Tauranga CTR', coords: [176.195, -37.673] }
     ];
-    towers.forEach(t => L.marker(t.coords).addTo(map).bindPopup(`<b>${t.name}</b><br>${t.note}`));
 
-    const $ = sel => document.querySelector(sel);
-    const unitEl = $('#unit');
-    const csEl = $('#callsign');
-    const qnhEl = $('#qnh');
-    const rwEl = $('#runway');
-    const scEl = $('#scenario');
-    const txEl = $('#transcript');
-    const fbEl = $('#feedback');
-    const pilotEl = $('#pilot');
-
-    function say(text) {
-      try {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-NZ';
-        u.rate = 0.95;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
-      } catch(e) { /* silently ignore */ }
-    }
-
-    function phoneticNumber(n) {
-      const map = { '0':'ZE-RO','1':'WUN','2':'TOO','3':'TREE','4':'FOW-er','5':'FIFE','6':'SIX','7':'SEV-en','8':'AIT','9':'NIN-er' };
-      return String(n).split('').map(d=>map[d]||d).join(' ');
-    }
-
-    function spokenQNH(q) {
-      return `Q N H ${String(q).split('').join(' ')}`;
-    }
-
-    function formatTower(line) {
-      // Show and speak
-      txEl.textContent += `\n${line}`;
-      say(line);
-    }
-
-    function modelReadback(kind, unit, cs, qnh, rw) {
-      const rwyWords = `runway ${rw.replace(/^(\d{2})$/, '$1')}`;
-      const rwySpeak = `Runway ${phoneticNumber(rw)}`;
-      const qnhSpeak = `Q N H ${String(qnh).split('').join(' ')}`;
-      switch(kind){
-        case 'initial':
-          return `${cs} at the aero club, request taxi, circuits, information Bravo, ${qnhSpeak}.`;
-        case 'taxi':
-          return `${cs} taxi to holding point ${rwyWords}.`;
-        case 'enter':
-          return `${cs} request clearance to enter control zone at one thousand five hundred feet for touch and go, ${qnhSpeak}.`;
-        case 'takeoff':
-          return `${cs} lined up ${rwyWords}.`;
-        case 'circuit':
-          return `${cs} on final ${rwyWords} touch and go.`;
-        default: return `${cs}.`;
-      }
-    }
-
-    function towerLine(kind, unit, cs, qnh, rw) {
-      // Per AC 4.7.1 do not say "go ahead". Use the two call signs and then transmit.
-      const rwySpeak = `Runway ${phoneticNumber(rw)}`;
-      const qnhSpeak = `Q N H ${String(qnh).split('').join(' ')}`;
-      if(kind==='initial') return `${unit} ${cs}. Runway ${rw}. Wind variable. ${qnhSpeak}. Say intentions.`;
-      if(kind==='taxi') return `${cs}. Taxi to holding point ${rw}. Hold short. ${qnhSpeak}.`;
-      if(kind==='enter') return `${cs}. Enter control zone at one thousand five hundred feet. Track to harbour entrance. Report harbour entrance. ${qnhSpeak}.`;
-      if(kind==='takeoff') return `${cs}. Line up ${rw}.`;
-      if(kind==='circuit') return `${cs}. Cleared touch and go ${rw}.`;
-      return `${cs}.`;
-    }
-
-    function checkReadback(kind, text, unit, cs, qnh, rw) {
-      const req = [];
-      // AC 4.12 readback requirements
-      if(['taxi','takeoff','enter','circuit'].includes(kind)) req.push(/\b(runway|holding point|line up|enter control zone|touch and go)\b/i);
-      req.push(new RegExp(cs.replace(/[-.*+?^${}()|[\]\\]/g,'\\$&'), 'i'));
-      if(['taxi','enter'].includes(kind)) req.push(/(hold short|report)/i);
-      if(['taxi','enter','initial'].includes(kind)) req.push(/\bQ\s?N\s?H\b|\bqnh\b/i);
-
-      const misses = req.filter(r => !r.test(text));
-      const feedback = [];
-      if(/\bgo ahead\b/i.test(text)) feedback.push('Avoid “go ahead” — not used in VHF per AC 4.7.1.');
-      if(!/\b(runway\s*\d{2})\b/i.test(text) && ['taxi','takeoff','circuit'].includes(kind)) feedback.push('Include runway designator.');
-      if(!/\b(enter control zone|control zone)\b/i.test(text) && kind==='enter') feedback.push('Acknowledge clearance to enter the control zone.');
-      if(!/\b(line\s*up)\b/i.test(text) && kind==='takeoff') feedback.push('State lined up when acknowledging line up clearance.');
-      if(!/\b(touch\s*and\s*go)\b/i.test(text) && kind==='circuit') feedback.push('Include touch and go in readback.');
-
-      const ok = misses.length===0 && feedback.length===0;
-      return { ok, details: ok ? ['Readback meets key requirements.'] : misses.map(()=> 'Ensure full readback per AC 4.12.') .concat(feedback)};
-    }
-
-    $('#btnStart').addEventListener('click', () => {
-      const unit = unitEl.value.trim() || 'Christchurch Tower';
-      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
-      const qnh = qnhEl.value.trim() || '1013';
-      const rw = rwEl.value.trim() || '02';
-      const kind = scEl.value;
-      const line = towerLine(kind, unit, cs, qnh, rw);
-      formatTower(`${unit}: ${line}`);
-      pilotEl.value = '';
-      fbEl.textContent = '';
+    zones.forEach(z => {
+      new maplibregl.Marker({ color: 'red' })
+        .setLngLat(z.coords)
+        .setPopup(new maplibregl.Popup().setHTML(
+          `<h2 class='font-bold text-lg mb-1'>${z.name}</h2>
+           <p class='text-sm'>Click to practise ATC calls for this zone.</p>`
+        ))
+        .addTo(map);
     });
-
-    $('#btnExample').addEventListener('click', () => {
-      const unit = unitEl.value.trim();
-      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
-      const qnh = qnhEl.value.trim() || '1013';
-      const rw = rwEl.value.trim() || '02';
-      const kind = scEl.value;
-      const model = modelReadback(kind, unit, cs, qnh, rw);
-      fbEl.innerHTML = `<span class="good">Model:</span> ${model}`;
-    });
-
-    $('#btnCheck').addEventListener('click', () => {
-      const unit = unitEl.value.trim();
-      const cs = csEl.value.trim() || 'Cessna ZK-FTD';
-      const qnh = qnhEl.value.trim() || '1013';
-      const rw = rwEl.value.trim() || '02';
-      const kind = scEl.value;
-      const text = pilotEl.value.trim();
-      const { ok, details } = checkReadback(kind, text, unit, cs, qnh, rw);
-      const badge = ok ? '<span class="good">OK</span>' : '<span class="bad">Needs work</span>';
-      fbEl.innerHTML = `${badge}\n- ${details.join('\n- ')}`;
-      if(ok) txEl.textContent += `\nPilot: ${text}`;
-    });
-
-    // Pronunciation helper
-    $('#btnSay').addEventListener('click', () => {
-      const t = $('#sayText').value.trim();
-      if(!t) return;
-      say(t.replace(/QNH\s*(\d+)/ig, (_,d) => `Q N H ${String(d).split('').join(' ')}`)
-            .replace(/\b(\d{2,4})\b/g, (_,n) => phoneticNumber(n)));
-    });
-    $('#btnStop').addEventListener('click', () => speechSynthesis.cancel());
-
-    // Seed transcript with a hint
-    txEl.textContent = 'This trainer follows NZ radiotelephony guidance. The tower will not say “go ahead”. Ensure full readback of clearances including runway, QNH, hold short, and reporting points as applicable.';
-  </script>const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://demotiles.maplibre.org/style.json', // free MapLibre style
-  center: [174.8, -41.2], // Centre on New Zealand
-  zoom: 4.5,
-  pitch: 60,
-  bearing: -20
-});
-
-// Major controlled zones in New Zealand
-const zones = [
-  { name: 'Auckland CTR', coords: [174.791, -37.008] },
-  { name: 'Wellington CTR', coords: [174.807, -41.327] },
-  { name: 'Christchurch CTR', coords: [172.539, -43.489] },
-  { name: 'Queenstown CTR', coords: [168.739, -45.021] },
-  { name: 'Dunedin CTR', coords: [170.201, -45.928] },
-  { name: 'Hamilton CTR', coords: [175.332, -37.866] },
-  { name: 'Tauranga CTR', coords: [176.195, -37.673] }
-];
-
-zones.forEach(z => {
-  new maplibregl.Marker({ color: 'red' })
-    .setLngLat(z.coords)
-    .setPopup(
-      new maplibregl.Popup().setHTML(
-        `<h2 class='font-bold text-lg mb-1'>${z.name}</h2>
-         <p class='text-sm'>Click to practise ATC calls for this zone.</p>`
-      )
-    )
-    .addTo(map);
-});
-
+  </script>
 </body>
 </html>
-
